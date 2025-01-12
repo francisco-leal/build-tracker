@@ -1,5 +1,3 @@
-// app/profile/page.jsx
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/config/auth-options";
 import { redirect } from "next/navigation";
@@ -23,13 +21,19 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { fetchGitHubUsername, fetchTotalCommits } from "@/lib/github";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user) {
+  if (!session || !session.user || !session.accessToken) {
     redirect("/");
   }
+
+  const username = await fetchGitHubUsername(session.accessToken);
+  const totalCommits = await fetchTotalCommits(username, session.accessToken);
+
+  console.log({ username, totalCommits });
 
   const { name, image } = session.user;
 
@@ -60,7 +64,7 @@ export default async function ProfilePage() {
                 <span className="flex items-center gap-1">
                   <Github className="h-4 w-4" />
                   <a href="#" className="hover:text-primary">
-                    @janedev
+                    @username
                   </a>
                 </span>
               </div>
