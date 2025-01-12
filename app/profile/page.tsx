@@ -1,5 +1,3 @@
-// app/profile/page.jsx
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/config/auth-options";
 import { redirect } from "next/navigation";
@@ -11,9 +9,9 @@ import {
   MapPin,
   Star,
   Timer,
+  Building2,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -23,13 +21,35 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import {
+  fetchCachedGitHubUserProfile,
+  fetchCachedGitHubContributionCalendar,
+  fetchCachedGitHubCommitMessages,
+} from "@/lib/github";
+import { ensureValidURL, calculateStreak } from "@/lib/utils";
+import { CommitHistory } from "@/components/commit-history";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user) {
+  if (!session || !session.user || !session.accessToken) {
     redirect("/");
   }
+
+  const userProfile = await fetchCachedGitHubUserProfile(session.accessToken);
+  const contributionData = await fetchCachedGitHubContributionCalendar(
+    userProfile.login,
+    session.accessToken
+  );
+  const commitMessages = await fetchCachedGitHubCommitMessages(
+    userProfile.login,
+    session.accessToken
+  );
+
+  const { maxStreak } = calculateStreak(contributionData);
+
+  const renderBlog = userProfile.blog && ensureValidURL(userProfile.blog);
+  const renderCompany = userProfile.company && userProfile.company;
 
   const { name, image } = session.user;
 
@@ -44,23 +64,37 @@ export default async function ProfilePage() {
               <AvatarFallback>{name?.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold">{name}</h1>
-              <p className="text-muted-foreground">Senior Software Engineer</p>
+              <h1 className="text-2xl font-bold">{userProfile.name}</h1>
+              <p className="text-muted-foreground">{userProfile.bio}</p>
               <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
-                  San Francisco, CA
+                  {userProfile.location}
                 </span>
-                <span className="flex items-center gap-1">
-                  <LinkIcon className="h-4 w-4" />
-                  <a href="#" className="hover:text-primary">
-                    jane.dev
-                  </a>
-                </span>
+                {renderBlog && (
+                  <span className="flex items-center gap-1">
+                    <LinkIcon className="h-4 w-4" />
+                    <a
+                      href={ensureValidURL(userProfile.blog)}
+                      className="hover:text-primary"
+                    >
+                      {userProfile.blog}
+                    </a>
+                  </span>
+                )}
+                {!renderBlog && renderCompany && (
+                  <span className="flex items-center gap-1">
+                    <Building2 className="h-4 w-4" />
+                    {userProfile.company}
+                  </span>
+                )}
                 <span className="flex items-center gap-1">
                   <Github className="h-4 w-4" />
-                  <a href="#" className="hover:text-primary">
-                    @janedev
+                  <a
+                    href={`https://github.com/${userProfile.login}`}
+                    className="hover:text-primary"
+                  >
+                    @{userProfile.login}
                   </a>
                 </span>
               </div>
@@ -77,9 +111,9 @@ export default async function ProfilePage() {
             <div className="flex gap-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Top Repositories</CardTitle>
+                  <CardTitle>top repositories</CardTitle>
                   <CardDescription>
-                    Most contributed to projects
+                    most contributed to projects
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -108,9 +142,6 @@ export default async function ProfilePage() {
                           </span>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm">
-                        View
-                      </Button>
                     </div>
                   ))}
                 </CardContent>
@@ -119,41 +150,44 @@ export default async function ProfilePage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-4">
                     <CardTitle className="text-sm font-medium">
-                      Total Commits
+                      commits
                     </CardTitle>
                     <Activity className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">2,543</div>
+                    <div className="text-2xl font-bold">
+                      {contributionData.contributionCalendar.totalContributions}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      +123 this month
+                      {contributionData.totalCommitContributions} of which was
+                      code
                     </p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-4">
                     <CardTitle className="text-sm font-medium">
-                      Contributions
+                      longest streak
                     </CardTitle>
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">365</div>
+                    <div className="text-2xl font-bold">{maxStreak}</div>
                     <p className="text-xs text-muted-foreground">
-                      Current streak
+                      weeks commiting
                     </p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-4">
                     <CardTitle className="text-sm font-medium">
-                      Code Time
+                      code time
                     </CardTitle>
                     <Timer className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">32.5h</div>
-                    <p className="text-xs text-muted-foreground">This week</p>
+                    <p className="text-xs text-muted-foreground">this week</p>
                   </CardContent>
                 </Card>
               </div>
@@ -162,16 +196,15 @@ export default async function ProfilePage() {
             {/* Tabs */}
             <Tabs defaultValue="commits" className="space-y-4">
               <TabsList>
-                <TabsTrigger value="commits">Commit History</TabsTrigger>
-                <TabsTrigger value="changelog">Changelog</TabsTrigger>
+                <TabsTrigger value="commits">commit history</TabsTrigger>
+                <TabsTrigger value="changelog">changelog</TabsTrigger>
               </TabsList>
               <TabsContent value="commits" className="space-y-4">
-                {/* <CommitHistory /> */}
-                <p>Commit History</p>
+                <CommitHistory commits={commitMessages} />
               </TabsContent>
               <TabsContent value="changelog" className="space-y-4">
                 {/* <Changelog /> */}
-                <p>Changelog</p>
+                <p>changelog</p>
               </TabsContent>
             </Tabs>
           </div>
