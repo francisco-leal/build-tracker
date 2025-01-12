@@ -7,8 +7,17 @@ import {
 } from "@/components/ui/card";
 import { Terminal } from "lucide-react";
 import { LoginButton } from "@/components/login-button";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-export default function Home() {
+export default async function Home() {
+  const session = await getServerSession(authOptions);
+
+  if (session && session.user) {
+    redirect("/profile");
+  }
+
   return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-secondary/20">
       <div className="w-full max-w-md space-y-8">
