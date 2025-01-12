@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Azeret_Mono as GeistMono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import "./globals.css";
+import { Providers } from "@/app/providers";
 
 const geistMono = GeistMono({
   subsets: ["latin"],
@@ -27,7 +28,7 @@ export default function RootLayout({
           geistMono.variable
         )}
       >
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

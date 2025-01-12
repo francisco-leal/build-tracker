@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -6,7 +5,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Terminal, Github } from "lucide-react";
+import { Terminal } from "lucide-react";
+import { LoginButton } from "@/components/login-button";
 
 export default function Home() {
   return (
@@ -38,13 +38,7 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4">
-              <Button
-                variant="outline"
-                className="hover:border-[#2DA44E] hover:bg-[#2DA44E]/10 hover:text-[#2DA44E]"
-              >
-                <Github className="mr-2 h-5 w-5" />
-                continue with github
-              </Button>
+              <LoginButton />
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
