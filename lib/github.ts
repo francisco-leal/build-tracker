@@ -1,10 +1,62 @@
 "use server";
 
 import { GraphQLClient, gql } from "graphql-request";
+import { unstable_cache } from "next/cache";
+import { CACHE_5_MINUTES } from "./constants";
+import { CacheKey } from "@/types/cache-key";
 
-export async function fetchGitHubUsername(
+export type GitHubUserProfile = {
+  login: string;
+  name: string;
+  avatar_url: string;
+  html_url: string;
+  company: string;
+  blog: string;
+  location: string;
+  bio: string;
+  public_repos: number;
+  public_gists: number;
+  followers: number;
+  following: number;
+  total_private_repos: number;
+  plan: {
+    name: string;
+    space: number;
+    private_repos: number;
+  };
+};
+
+export type GitHubContributionType = {
+  contributionCalendar: {
+    totalContributions: number;
+    colors: string[];
+    weeks: {
+      contributionDays: {
+        contributionCount: number;
+        date: string;
+      }[];
+    }[];
+  };
+  totalCommitContributions: number;
+};
+
+export const fetchCachedGitHubUserProfile: (
   accessToken: string
-): Promise<string> {
+) => Promise<GitHubUserProfile> = async (accessToken: string) => {
+  return unstable_cache(
+    async (accessToken: string): Promise<GitHubUserProfile> => {
+      return await fetchGitHubUserProfile(accessToken);
+    },
+    [`github-profile-${accessToken}`] as CacheKey[],
+    {
+      revalidate: CACHE_5_MINUTES,
+    }
+  )(accessToken);
+};
+
+export async function fetchGitHubUserProfile(
+  accessToken: string
+): Promise<GitHubUserProfile> {
   const endpoint = "https://api.github.com/user";
 
   const headers = {
@@ -18,14 +70,35 @@ export async function fetchGitHubUsername(
     throw new Error("Failed to fetch GitHub user data.");
   }
 
-  const data: { login: string } = await response.json();
-  return data.login;
+  const data: GitHubUserProfile = await response.json();
+  return data;
 }
 
-export async function fetchTotalCommits(
+export const fetchCachedGitHubContributionCalendar: (
   username: string,
   accessToken: string
-): Promise<number> {
+) => Promise<GitHubContributionType> = async (
+  username: string,
+  accessToken: string
+) => {
+  return unstable_cache(
+    async (
+      username: string,
+      accessToken: string
+    ): Promise<GitHubContributionType> => {
+      return await fetchGitHubContributionCalendar(username, accessToken);
+    },
+    [`github-total-commits-${username}`] as CacheKey[],
+    {
+      revalidate: CACHE_5_MINUTES,
+    }
+  )(username, accessToken);
+};
+
+export async function fetchGitHubContributionCalendar(
+  username: string,
+  accessToken: string
+): Promise<GitHubContributionType> {
   const endpoint = "https://api.github.com/graphql";
   const graphQLClient = new GraphQLClient(endpoint, {
     headers: {
@@ -44,13 +117,27 @@ export async function fetchTotalCommits(
       user(login: $username) {
         contributionsCollection(from: $from, to: $to) {
           totalCommitContributions
+          totalPullRequestContributions
+          totalPullRequestReviewContributions
+          totalRepositoriesWithContributedCommits
+          contributionCalendar {
+            totalContributions
+            colors
+            weeks {
+              contributionDays {
+                contributionCount
+                date
+              }
+            }
+          }
         }
       }
     }
   `;
 
-  // fetch from past 7 days
-  const fromDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const fromDate = new Date(
+    Date.now() - 365 * 24 * 60 * 60 * 1000
+  ).toISOString();
   const toDate = new Date().toISOString();
 
   const variables = {
@@ -70,6 +157,23 @@ export async function fetchTotalCommits(
       user: {
         contributionsCollection: {
           totalCommitContributions: number;
+          totalPullRequestContributions: number;
+          totalPullRequestReviewContributions: number;
+          totalRepositoriesWithContributedCommits: number;
+          contributionCalendar: {
+            totalContributions: number;
+            colors: string[];
+            weeks: {
+              contributionDays: {
+                contributionCount: number;
+                date: string;
+              }[];
+            }[];
+            months: {
+              firstDay: string;
+              totalWeeks: number;
+            }[];
+          };
         };
       };
     }>(query, variables);
@@ -84,7 +188,7 @@ export async function fetchTotalCommits(
       // Implement logic to handle rate limiting if necessary
     }
 
-    return user.contributionsCollection.totalCommitContributions;
+    return user.contributionsCollection;
   } catch (error) {
     console.error("Error fetching commits:", error);
     throw new Error("Failed to fetch commit data.");
