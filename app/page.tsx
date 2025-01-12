@@ -9,7 +9,7 @@ import { Terminal } from "lucide-react";
 import { LoginButton } from "@/components/login-button";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/config/auth-options";
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
