@@ -7,7 +7,7 @@ import {
   Github,
   LinkIcon,
   MapPin,
-  Star,
+  ArrowUpFromDot,
   Timer,
   Building2,
 } from "lucide-react";
@@ -26,7 +26,11 @@ import {
   fetchCachedGitHubContributionCalendar,
   fetchCachedGitHubCommitMessages,
 } from "@/lib/github";
-import { ensureValidURL, calculateStreak } from "@/lib/utils";
+import {
+  ensureValidURL,
+  calculateStreak,
+  getListOfRepositories,
+} from "@/lib/utils";
 import { CommitHistory } from "@/components/commit-history";
 
 export default async function ProfilePage() {
@@ -45,6 +49,8 @@ export default async function ProfilePage() {
     userProfile.login,
     session.accessToken
   );
+
+  const repositories = getListOfRepositories(commitMessages);
 
   const { maxStreak } = calculateStreak(contributionData);
 
@@ -117,28 +123,20 @@ export default async function ProfilePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {[
-                    {
-                      name: "awesome-project",
-                      stars: 1234,
-                      lang: "TypeScript",
-                    },
-                    { name: "cool-lib", stars: 567, lang: "Rust" },
-                    { name: "dev-tools", stars: 89, lang: "Python" },
-                  ].map((repo) => (
+                  {repositories.map(({ repository, count }) => (
                     <div
-                      key={repo.name}
+                      key={repository.name}
                       className="flex items-center justify-between gap-4"
                     >
                       <div className="space-y-1">
-                        <p className="font-medium">{repo.name}</p>
+                        <p className="font-medium">{repository.name}</p>
                         <div className="flex items-center gap-2">
                           <Badge variant="secondary" className="text-xs">
-                            {repo.lang}
+                            {repository.owner.login}
                           </Badge>
                           <span className="flex items-center text-sm text-muted-foreground">
-                            <Star className="mr-1 h-3 w-3" />
-                            {repo.stars}
+                            <ArrowUpFromDot className="mr-1 h-3 w-3" />
+                            {count}
                           </span>
                         </div>
                       </div>

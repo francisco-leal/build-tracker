@@ -25,7 +25,7 @@ export function CommitHistory({ commits }: { commits: GitHubCommitMessage[] }) {
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span>{shortHash(commit.hash)}</span>
               <span>•</span>
-              <span>{commit.repository}</span>
+              <span>{commit.repository.name}</span>
               <span>•</span>
               <span>{formatDate(commit.date)}</span>
             </div>

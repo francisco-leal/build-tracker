@@ -43,7 +43,12 @@ export type GitHubContributionType = {
 export type GitHubCommitMessage = {
   message: string;
   date: string;
-  repository: string;
+  repository: {
+    name: string;
+    owner: {
+      login: string;
+    };
+  };
   hash: string;
 };
 
@@ -57,6 +62,9 @@ export type GitHubCommitSearchResponse = {
     };
     repository: {
       name: string;
+      owner: {
+        login: string;
+      };
     };
     sha: string;
   }[];
@@ -271,7 +279,7 @@ export const fetchGitHubCommitMessages = async (
     return {
       message: item.commit.message,
       date: item.commit.author.date,
-      repository: item.repository.name,
+      repository: item.repository,
       hash: item.sha,
     };
   });
