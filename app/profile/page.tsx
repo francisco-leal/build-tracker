@@ -119,7 +119,7 @@ export default async function ProfilePage() {
                 <CardHeader>
                   <CardTitle>top repositories</CardTitle>
                   <CardDescription>
-                    most contributed to projects
+                    that you contributed to this week
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
