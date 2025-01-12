@@ -46,7 +46,7 @@ export default async function ProfilePage() {
     session.accessToken
   );
 
-  const streak = calculateStreak(contributionData);
+  const { maxStreak } = calculateStreak(contributionData);
 
   const renderBlog = userProfile.blog && ensureValidURL(userProfile.blog);
   const renderCompany = userProfile.company && userProfile.company;
@@ -172,7 +172,7 @@ export default async function ProfilePage() {
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{streak}</div>
+                    <div className="text-2xl font-bold">{maxStreak}</div>
                     <p className="text-xs text-muted-foreground">
                       weeks commiting
                     </p>

@@ -36,5 +36,5 @@ export const calculateStreak = ({
     }
   }
 
-  return maxStreak;
+  return { maxStreak, currentStreak };
 };

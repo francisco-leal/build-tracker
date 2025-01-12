@@ -47,6 +47,21 @@ export type GitHubCommitMessage = {
   hash: string;
 };
 
+export type GitHubCommitSearchResponse = {
+  items: {
+    commit: {
+      message: string;
+      author: {
+        date: string;
+      };
+    };
+    repository: {
+      name: string;
+    };
+    sha: string;
+  }[];
+};
+
 export const fetchCachedGitHubUserProfile: (
   accessToken: string
 ) => Promise<GitHubUserProfile> = async (accessToken: string) => {
@@ -249,10 +264,10 @@ export const fetchGitHubCommitMessages = async (
     );
   }
 
-  const data = await response.json();
+  const data: GitHubCommitSearchResponse = await response.json();
 
   // Extract commit messages
-  const commitMessages: GitHubCommitMessage[] = data.items.map((item: any) => {
+  const commitMessages: GitHubCommitMessage[] = data.items.map((item) => {
     return {
       message: item.commit.message,
       date: item.commit.author.date,
