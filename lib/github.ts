@@ -40,6 +40,13 @@ export type GitHubContributionType = {
   totalCommitContributions: number;
 };
 
+export type GitHubCommitMessage = {
+  message: string;
+  date: string;
+  repository: string;
+  hash: string;
+};
+
 export const fetchCachedGitHubUserProfile: (
   accessToken: string
 ) => Promise<GitHubUserProfile> = async (accessToken: string) => {
@@ -194,3 +201,65 @@ export async function fetchGitHubContributionCalendar(
     throw new Error("Failed to fetch commit data.");
   }
 }
+
+export const fetchCachedGitHubCommitMessages: (
+  username: string,
+  accessToken: string
+) => Promise<GitHubCommitMessage[]> = async (
+  username: string,
+  accessToken: string
+) => {
+  return unstable_cache(
+    async (
+      username: string,
+      accessToken: string
+    ): Promise<GitHubCommitMessage[]> => {
+      return await fetchGitHubCommitMessages(username, accessToken);
+    },
+    [`github-commit-messages-${username}`] as CacheKey[],
+    {
+      revalidate: CACHE_5_MINUTES,
+    }
+  )(username, accessToken);
+};
+
+export const fetchGitHubCommitMessages = async (
+  username: string,
+  accessToken: string
+) => {
+  // past 7 days
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const query = `author:${username} author-date:>${since}`;
+  const url = `https://api.github.com/search/commits?q=${encodeURIComponent(
+    query
+  )}&sort=author-date-desc`;
+
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/vnd.github.cloak-preview", // Required for commit search
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(
+      `GitHub API error: ${response.status} ${response.statusText} - ${errorBody}`
+    );
+  }
+
+  const data = await response.json();
+
+  // Extract commit messages
+  const commitMessages: GitHubCommitMessage[] = data.items.map((item: any) => {
+    return {
+      message: item.commit.message,
+      date: item.commit.author.date,
+      repository: item.repository.name,
+      hash: item.sha,
+    };
+  });
+
+  return commitMessages;
+};

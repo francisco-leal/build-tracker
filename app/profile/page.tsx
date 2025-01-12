@@ -12,7 +12,6 @@ import {
   Building2,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -25,8 +24,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   fetchCachedGitHubUserProfile,
   fetchCachedGitHubContributionCalendar,
+  fetchCachedGitHubCommitMessages,
 } from "@/lib/github";
 import { ensureValidURL, calculateStreak } from "@/lib/utils";
+import { CommitHistory } from "@/components/commit-history";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -37,6 +38,10 @@ export default async function ProfilePage() {
 
   const userProfile = await fetchCachedGitHubUserProfile(session.accessToken);
   const contributionData = await fetchCachedGitHubContributionCalendar(
+    userProfile.login,
+    session.accessToken
+  );
+  const commitMessages = await fetchCachedGitHubCommitMessages(
     userProfile.login,
     session.accessToken
   );
@@ -137,9 +142,6 @@ export default async function ProfilePage() {
                           </span>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm">
-                        view
-                      </Button>
                     </div>
                   ))}
                 </CardContent>
@@ -198,8 +200,7 @@ export default async function ProfilePage() {
                 <TabsTrigger value="changelog">changelog</TabsTrigger>
               </TabsList>
               <TabsContent value="commits" className="space-y-4">
-                {/* <CommitHistory /> */}
-                <p>commit history</p>
+                <CommitHistory commits={commitMessages} />
               </TabsContent>
               <TabsContent value="changelog" className="space-y-4">
                 {/* <Changelog /> */}
